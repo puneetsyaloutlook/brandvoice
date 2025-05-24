@@ -207,44 +207,51 @@ Rewritten text:`;
 
 // Use Together AI API (has a good free tier)
 async function rewriteWithTogether(text, brandProfile, brandName) {
-  const prompt = `Rewrite the following text to match the ${brandName} brand voice.
+  const prompt = `You are a professional copywriter. Rewrite the following text to match the ${brandName} brand voice exactly as described.
 
-BRAND VOICE PROFILE FOR ${brandName}:
-${brandProfile}
+BRAND VOICE GUIDELINES FOR ${brandName}:
+${brandProfile.substring(0, 1000)}
 
-ORIGINAL TEXT: "${text}"
+ORIGINAL TEXT:
+"${text}"
 
-Rewrite this text to perfectly match the ${brandName} brand voice described above. Output only the rewritten text:`;
+TASK: Rewrite the original text to perfectly match the ${brandName} brand voice described above. Output only the rewritten text, no explanations.
+
+REWRITTEN TEXT:`;
 
   try {
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+    const response = await fetch('https://api.together.xyz/v1/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.TOGETHER_API_KEY || 'dummy-key'}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-2-7b-chat-hf',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 200,
-        temperature: 0.7
+        model: 'togethercomputer/llama-2-7b-chat',
+        prompt: prompt,
+        max_tokens: 150,
+        temperature: 0.7,
+        stop: ["\n\n", "ORIGINAL TEXT:", "BRAND VOICE"]
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Together API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     
-    if (data.choices && data.choices[0] && data.choices[0].message) {
-      const result = data.choices[0].message.content.trim();
-      return result;
+    if (data.choices && data.choices[0] && data.choices[0].text) {
+      let result = data.choices[0].text.trim();
+      
+      // Clean up the response
+      result = result.replace(/^["'\-\s]+|["'\-\s]+$/g, '');
+      result = result.split('\n')[0]; // Take first line only
+      
+      if (result.length > 10) {
+        return result;
+      }
     }
     
     throw new Error('No valid response from Together AI');
