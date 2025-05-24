@@ -205,21 +205,21 @@ Rewritten text:`;
   }
 }
 
-// Main rewrite function - only tries Hugging Face, no fallback
+// Main rewrite function - only tries Together AI, no fallback
 async function rewriteText(text, brandProfile, brandName) {
-  console.log(`Trying Hugging Face API for ${brandName}...`);
+  console.log(`Trying Together AI API for ${brandName}...`);
   
   try {
-    const result = await rewriteWithHuggingFace(text, brandProfile, brandName);
+    const result = await rewriteWithTogether(text, brandProfile, brandName);
     
     if (result && result.length > 10 && result !== text) {
-      console.log(`Success with Hugging Face API`);
+      console.log(`Success with Together AI API`);
       return result;
     } else {
       throw new Error('No valid response generated');
     }
   } catch (error) {
-    console.log(`Hugging Face API failed:`, error.message);
+    console.log(`Together AI API failed:`, error.message);
     throw new Error(`Failed to rewrite text: ${error.message}`);
   }
 }
@@ -258,7 +258,8 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Loaded ${Object.keys(brandProfiles).length} brand profiles`);
   console.log('Available brands:', Object.keys(brandProfiles).join(', '));
-  console.log('\nThis app requires LLM APIs to function.');
-  console.log('Hugging Face Inference API is used (free, no key required).');
-  console.log('If models fail, you will see error messages.');
+  console.log('\nFor AI-powered rewriting, get a free Together AI key:');
+  console.log('1. Go to: https://api.together.xyz');
+  console.log('2. Sign up (free tier available)');
+  console.log('3. Get API key and set: export TOGETHER_API_KEY="your-key"');
 });
