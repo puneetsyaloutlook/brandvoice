@@ -52,7 +52,6 @@ app.get('/', (req, res) => {
 
 // Get all brand profiles
 app.get('/api/brands', (req, res) => {
-  // Reload brands each time to pick up new files
   loadBrandProfiles();
   
   const brands = Object.keys(brandProfiles).map(name => ({
@@ -63,35 +62,89 @@ app.get('/api/brands', (req, res) => {
   res.json(brands);
 });
 
-// Rewrite text using free Hugging Face API
-async function rewriteWithHuggingFace(text, brandProfile, brandName) {
-  const prompt = `Rewrite the following text to match the ${brandName} brand voice. The brand characteristics are: ${extractBrandCharacteristics(brandProfile).slice(0, 200)}...
+// Rewrite text using Groq API (free and fast)
+async function rewriteWithGroq(text, brandProfile, brandName) {
+  const prompt = `You are a professional copywriter. Rewrite the following text to match the exact brand voice and style described in the brand guide below.
 
-Original text: "${text}"
+BRAND VOICE GUIDE FOR ${brandName.toUpperCase()}:
+${brandProfile}
 
-Rewritten text:`;
+ORIGINAL TEXT TO REWRITE:
+"${text}"
+
+INSTRUCTIONS:
+- Rewrite the text to perfectly match the brand voice characteristics described above
+- Follow all the guidelines, tone, and style rules from the brand guide
+- Keep the core message and meaning intact
+- Apply the specific vocabulary, sentence structure, and communication style outlined in the guide
+- Output ONLY the rewritten text, no explanations or additional content
+
+REWRITTEN TEXT:`;
 
   try {
-    // Using Hugging Face's free inference API
-    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-large', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY || 'gsk_dummy'}`,
         'Content-Type': 'application/json',
-        // No API key required for basic usage
       },
       body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_length: 150,
-          temperature: 0.7,
-          return_full_text: false
-        }
+        model: 'llama3-8b-8192',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.statusText}`);
+      throw new Error(`Groq API error: ${response.statusText}`);
     }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || 'Unknown API error');
+    }
+
+    return data.choices[0].message.content.trim();
+    
+  } catch (error) {
+    console.error('Groq API error:', error);
+    throw error;
+  }
+}
+
+// Alternative: Use Hugging Face Inference API
+async function rewriteWithHuggingFace(text, brandProfile, brandName) {
+  const prompt = `Rewrite this text in ${brandName} brand voice based on these guidelines:
+
+Brand Guidelines:
+${brandProfile.substring(0, 500)}
+
+Original: "${text}"
+
+Rewritten:`;
+
+  try {
+    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 150,
+          temperature: 0.8,
+          return_full_text: false
+        }
+      }),
+    });
 
     const data = await response.json();
     
@@ -99,142 +152,149 @@ Rewritten text:`;
       throw new Error(data.error);
     }
 
-    // Extract the generated text
-    let generatedText = '';
-    if (Array.isArray(data) && data[0] && data[0].generated_text) {
-      generatedText = data[0].generated_text.replace(prompt, '').trim();
-    } else if (data.generated_text) {
-      generatedText = data.generated_text.replace(prompt, '').trim();
+    if (Array.isArray(data) && data[0]?.generated_text) {
+      return data[0].generated_text.replace(prompt, '').trim();
     }
-
-    return generatedText || fallbackRewrite(text, brandProfile, brandName);
+    
+    throw new Error('No valid response from Hugging Face');
     
   } catch (error) {
     console.error('Hugging Face API error:', error);
-    // Fallback to local processing
-    return fallbackRewrite(text, brandProfile, brandName);
+    throw error;
   }
 }
 
-// Enhanced fallback rewrite function
-function fallbackRewrite(text, brandProfile, brandName) {
-  let result = text;
+// Use free Together AI API
+async function rewriteWithTogether(text, brandProfile, brandName) {
+  const prompt = `You are an expert copywriter. Rewrite the following text to match the ${brandName} brand voice using the guidelines provided.
+
+BRAND VOICE GUIDELINES:
+${brandProfile}
+
+TEXT TO REWRITE:
+"${text}"
+
+Rewrite this text following the brand guidelines exactly. Output only the rewritten text:`;
+
+  try {
+    const response = await fetch('https://api.together.xyz/inference', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY || 'dummy'}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'togethercomputer/llama-2-7b-chat',
+        prompt: prompt,
+        max_tokens: 200,
+        temperature: 0.7,
+        top_p: 0.7,
+        top_k: 50,
+        repetition_penalty: 1,
+        stop: ["\n\n"]
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Together API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.output?.choices?.[0]?.text?.trim() || data.choices?.[0]?.text?.trim() || '';
+    
+  } catch (error) {
+    console.error('Together AI API error:', error);
+    throw error;
+  }
+}
+
+// Fallback to a local LLM-style transformation
+function localLLMRewrite(text, brandProfile, brandName) {
+  // This simulates what an LLM would do by analyzing the brand profile
+  // and applying systematic transformations
   
-  // Extract key characteristics from the brand profile
   const profile = brandProfile.toLowerCase();
-  
-  if (brandName.toLowerCase() === 'bingle') {
-    // Apply Bingle-specific transformations
-    result = applyBingleTransformations(text);
-  } else {
-    // Apply generic brand transformations based on profile content
-    result = applyGenericTransformations(text, profile);
-  }
-  
-  return result;
-}
-
-function applyBingleTransformations(text) {
   let result = text;
   
-  // Replace corporate jargon with simple, direct language
-  const bingleReplacements = {
-    'comprehensive insurance solutions': 'car insurance',
-    'comprehensive coverage': 'full cover',
-    'innovative products': 'insurance',
-    'cutting-edge technology': 'smart tech',
-    'state-of-the-art': 'modern',
-    'unparalleled value propositions': 'great value',
-    'exceptional value': 'great value',
-    'valued customers': 'customers',
-    'esteemed clients': 'customers',
-    'revolutionize your coverage experience': 'make insurance simple',
-    'transform your insurance journey': 'make insurance easy',
-    'leverage': 'use',
-    'utilize': 'use',
-    'facilitate': 'help',
-    'unforeseen circumstances': 'unexpected problems',
-    'unprecedented situation': 'unusual situation',
-    'we regret to inform you': 'we need to tell you',
-    'we are pleased to announce': 'we\'re announcing',
-    'sincerely apologize': 'sorry',
-    'any inconvenience this might cause': 'any hassle',
-    'appreciate your patience': 'thanks for waiting',
-    'challenging time': 'tough time',
-    'difficult period': 'hard time',
-    'specialized representatives': 'our team',
-    'customer service specialists': 'our team',
-    'within the next 24-48 business hours': 'within 2 days',
-    'in due course': 'soon',
-    'assist you with your concerns': 'help you',
-    'address your inquiries': 'answer your questions',
-    'premium insurance package': 'car insurance',
-    'comprehensive policy': 'full cover',
-    'extensive coverage options': 'different cover types',
-    'wide range of benefits': 'lots of benefits',
-    'flexible payment plans': 'payment options',
-    'customized to meet your unique needs': 'that work for you',
-    'tailored solutions': 'options that fit',
-    'budget requirements': 'budget',
-    'financial constraints': 'budget'
-  };
+  // Analyze brand profile for key transformation rules
+  const isStraightforward = profile.includes('straightforward') || profile.includes('direct');
+  const isSimple = profile.includes('simple') || profile.includes('plain english');
+  const isActionOriented = profile.includes('action') || profile.includes('immediate');
+  const isCasual = profile.includes('casual') || profile.includes('friendly');
+  const isConfident = profile.includes('confident') || profile.includes('assured');
   
-  // Apply word/phrase replacements
-  Object.keys(bingleReplacements).forEach(phrase => {
-    const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    result = result.replace(regex, bingleReplacements[phrase]);
-  });
+  // Apply transformations based on brand characteristics
+  if (isStraightforward) {
+    result = result.replace(/we are excited to announce/gi, '');
+    result = result.replace(/we are pleased to inform you/gi, '');
+    result = result.replace(/it is important to note/gi, '');
+    result = result.replace(/please be advised/gi, '');
+  }
   
-  // Make sentences more direct
-  result = result.replace(/Due to the fact that/gi, 'Because');
-  result = result.replace(/In order to/gi, 'To');
-  result = result.replace(/For the purpose of/gi, 'To');
-  result = result.replace(/We are excited to announce that/gi, '');
-  result = result.replace(/We are pleased to inform you that/gi, '');
-  result = result.replace(/It is important to note that/gi, '');
-  result = result.replace(/Please be advised that/gi, '');
+  if (isSimple) {
+    result = result.replace(/comprehensive/gi, 'complete');
+    result = result.replace(/utilize/gi, 'use');
+    result = result.replace(/facilitate/gi, 'help');
+    result = result.replace(/innovative/gi, 'new');
+    result = result.replace(/cutting-edge/gi, 'modern');
+    result = result.replace(/revolutionary/gi, 'new');
+  }
   
-  // Remove redundant phrases
-  result = result.replace(/\s+that will\s+/gi, ' that ');
-  result = result.replace(/\s+which will\s+/gi, ' that ');
-  result = result.replace(/at this point in time/gi, 'now');
-  result = result.replace(/in the near future/gi, 'soon');
+  if (isActionOriented) {
+    result = result.replace(/will be able to/gi, 'can');
+    result = result.replace(/in order to/gi, 'to');
+    result = result.replace(/for the purpose of/gi, 'to');
+  }
   
-  // Clean up extra spaces and punctuation
+  if (isCasual) {
+    result = result.replace(/Dear Sir\/Madam/gi, 'Hi');
+    result = result.replace(/we would like to/gi, 'we\'d like to');
+    result = result.replace(/do not/gi, 'don\'t');
+    result = result.replace(/cannot/gi, 'can\'t');
+  }
+  
+  if (isConfident) {
+    result = result.replace(/might be able to/gi, 'can');
+    result = result.replace(/we believe/gi, 'we know');
+    result = result.replace(/perhaps/gi, '');
+    result = result.replace(/possibly/gi, '');
+  }
+  
+  // Clean up and format
   result = result.replace(/\s+/g, ' ').trim();
   
   return result;
 }
 
-function applyGenericTransformations(text, profile) {
-  let result = text;
+// Main rewrite function
+async function rewriteText(text, brandProfile, brandName) {
+  // Try multiple LLM APIs in order of preference
+  const apis = [
+    { name: 'Groq', fn: rewriteWithGroq },
+    { name: 'Together', fn: rewriteWithTogether },
+    { name: 'HuggingFace', fn: rewriteWithHuggingFace }
+  ];
   
-  // Apply transformations based on brand characteristics
-  if (profile.includes('direct') || profile.includes('straightforward')) {
-    result = result.replace(/we believe that/gi, '');
-    result = result.replace(/it is our opinion that/gi, '');
-    result = result.replace(/we think that/gi, '');
-    result = result.replace(/in our view/gi, '');
+  for (const api of apis) {
+    try {
+      console.log(`Trying ${api.name} API...`);
+      const result = await api.fn(text, brandProfile, brandName);
+      if (result && result.length > 10) {
+        console.log(`Success with ${api.name} API`);
+        return result;
+      }
+    } catch (error) {
+      console.log(`${api.name} API failed:`, error.message);
+      continue;
+    }
   }
   
-  if (profile.includes('friendly') || profile.includes('casual')) {
-    result = result.replace(/Dear Sir\/Madam/gi, 'Hi');
-    result = result.replace(/To Whom It May Concern/gi, 'Hi');
-    result = result.replace(/Sincerely/gi, 'Thanks');
-    result = result.replace(/Best regards/gi, 'Cheers');
-  }
-  
-  if (profile.includes('simple') || profile.includes('clear')) {
-    result = result.replace(/commence/gi, 'start');
-    result = result.replace(/terminate/gi, 'end');
-    result = result.replace(/assistance/gi, 'help');
-    result = result.replace(/endeavor/gi, 'try');
-  }
-  
-  return result;
+  // If all APIs fail, use local processing
+  console.log('All APIs failed, using local processing');
+  return localLLMRewrite(text, brandProfile, brandName);
 }
 
-// Rewrite text in brand voice
+// Rewrite endpoint
 app.post('/api/rewrite', async (req, res) => {
   const { text, brandName } = req.body;
   
@@ -248,42 +308,18 @@ app.post('/api/rewrite', async (req, res) => {
   
   try {
     const brandProfile = brandProfiles[brandName];
-    let rewrittenText;
-    
-    // Try Hugging Face API first, fallback to local processing
-    try {
-      rewrittenText = await rewriteWithHuggingFace(text, brandProfile, brandName);
-    } catch (error) {
-      console.log('AI API not available, using enhanced fallback processing');
-      rewrittenText = fallbackRewrite(text, brandProfile, brandName);
-    }
+    const rewrittenText = await rewriteText(text, brandProfile, brandName);
     
     res.json({ 
       originalText: text,
       rewrittenText: rewrittenText,
-      brandName: brandName,
-      usingAI: false // Set to true when AI is working
+      brandName: brandName
     });
   } catch (error) {
     console.error('Rewrite error:', error);
     res.status(500).json({ error: 'Failed to rewrite text: ' + error.message });
   }
 });
-
-function extractBrandCharacteristics(profile) {
-  const lines = profile.split('\n');
-  const characteristics = [];
-  
-  lines.forEach(line => {
-    if (line.includes('•') || line.includes('-') || line.includes('*')) {
-      characteristics.push(line.trim());
-    } else if (line.includes(':') && (line.includes('Positioning') || line.includes('Voice') || line.includes('Tone'))) {
-      characteristics.push(line.trim());
-    }
-  });
-  
-  return characteristics.slice(0, 5).join('\n') || 'Brand characteristics applied from profile';
-}
 
 // Initialize and start server
 loadBrandProfiles();
