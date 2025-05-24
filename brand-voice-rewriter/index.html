@@ -10,160 +10,108 @@
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #667eea;
             padding: 20px;
         }
-
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            padding: 20px;
         }
-
         .header {
-            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            text-align: center;
+            background: #2d3748;
             color: white;
             padding: 30px;
-            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .main-content {
-            padding: 40px;
-        }
-
-        .upload-section {
+        .brand-selection {
             background: #f8fafc;
-            border: 2px dashed #cbd5e0;
+            border: 2px solid #e2e8f0;
             border-radius: 12px;
             padding: 30px;
             text-align: center;
             margin-bottom: 30px;
         }
-
-        .upload-btn {
-            background: #667eea;
-            color: white;
-            border: none;
+        .brand-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .brand-btn {
+            background: #e2e8f0;
+            color: #2d3748;
+            border: 2px solid #cbd5e0;
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 1rem;
             cursor: pointer;
-            margin: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
-
-        .upload-btn:hover {
-            background: #5a67d8;
+        .brand-btn:hover {
+            background: #cbd5e0;
+            border-color: #a0aec0;
         }
-
-        .brand-list {
-            margin-bottom: 20px;
-            padding: 20px;
+        .brand-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #5a67d8;
+        }
+        .selected-brand {
+            margin-top: 15px;
+            padding: 10px;
             background: #e0e7ff;
-            border-radius: 8px;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #4c51bf;
         }
-
         .input-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 30px;
         }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #2d3748;
-        }
-
         textarea {
+            width: 100%;
             padding: 16px;
             border: 2px solid #e2e8f0;
             border-radius: 8px;
-            font-size: 1rem;
-            line-height: 1.5;
-            resize: vertical;
             min-height: 200px;
-            font-family: inherit;
         }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        select {
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            background: white;
-            cursor: pointer;
-        }
-
         .rewrite-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
             border: none;
             padding: 16px 32px;
             border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
             width: 100%;
-            margin-bottom: 30px;
+            cursor: pointer;
+            font-size: 16px;
         }
-
-        .rewrite-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
         .rewrite-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-
-        .error, .success {
+        .message {
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin: 10px 0;
         }
-
-        .error {
-            background: #fed7d7;
-            color: #c53030;
-        }
-
-        .success {
-            background: #c6f6d5;
-            color: #2f855a;
-        }
-
+        .success { background: #c6f6d5; color: #2f855a; }
+        .error { background: #fed7d7; color: #c53030; }
         .loading {
             display: none;
             text-align: center;
             padding: 20px;
+            color: #667eea;
         }
-
         .spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
@@ -173,12 +121,10 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
         @media (max-width: 768px) {
             .input-section {
                 grid-template-columns: 1fr;
@@ -193,130 +139,60 @@
             <p>Transform your text to match any brand's tone of voice</p>
         </div>
         
-        <div class="main-content">
-            <div class="upload-section">
-                <h3>Upload Brand Voice Profiles</h3>
-                <p>Select .txt or .md files containing brand voice guidelines</p>
-                <input type="file" id="fileInput" multiple accept=".txt,.md" style="display: none;">
-                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                    Choose Files
-                </button>
-                <button class="upload-btn" onclick="loadBrands()">
-                    Refresh Brand List
-                </button>
+        <div class="brand-selection">
+            <h3>Select Brand Voice</h3>
+            <p>Choose a brand voice to apply to your text</p>
+            <div id="brandButtons" class="brand-buttons">
+                <!-- Brand buttons will be loaded here -->
             </div>
-
-            <div class="brand-list" id="brandList" style="display: none;">
-                <h3>Available Brand Profiles:</h3>
-                <div id="brandItems"></div>
+            <div id="selectedBrand" class="selected-brand" style="display: none;">
+                No brand selected
             </div>
-
-            <div class="input-section">
-                <div class="input-group">
-                    <label for="inputText">Original Text</label>
-                    <textarea 
-                        id="inputText" 
-                        placeholder="Enter the text you want to rewrite in a specific brand voice..."
-                    ></textarea>
-                </div>
-                
-                <div class="input-group">
-                    <label for="brandSelect">Select Brand Voice</label>
-                    <select id="brandSelect">
-                        <option value="">Choose a brand...</option>
-                    </select>
-                    
-                    <label for="outputText" style="margin-top: 20px;">Rewritten Text</label>
-                    <textarea 
-                        id="outputText" 
-                        placeholder="Rewritten text will appear here..."
-                        readonly
-                    ></textarea>
-                </div>
-            </div>
-
-            <button class="rewrite-btn" id="rewriteBtn" onclick="rewriteText()">
-                Rewrite Text
-            </button>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Rewriting text...</p>
-            </div>
-
-            <div id="messageContainer"></div>
         </div>
+
+        <div class="input-section">
+            <div>
+                <label>Original Text</label>
+                <textarea id="inputText" placeholder="Enter the text you want to rewrite..."></textarea>
+            </div>
+            
+            <div>
+                <label>Rewritten Text</label>
+                <textarea id="outputText" placeholder="Rewritten text will appear here..." readonly></textarea>
+            </div>
+        </div>
+
+        <button class="rewrite-btn" id="rewriteBtn" onclick="rewriteText()">
+            Rewrite Text
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Rewriting text...</p>
+        </div>
+
+        <div id="messageContainer"></div>
     </div>
 
     <script>
-        // Load brands on page load
+        let selectedBrandName = '';
+        
         window.addEventListener('load', loadBrands);
-        
-        // File upload handling
-        document.getElementById('fileInput').addEventListener('change', uploadFiles);
-        
-        async function uploadFiles(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-            
-            const formData = new FormData();
-            for (let file of files) {
-                formData.append('files', file);
-            }
-            
-            try {
-                showMessage('Uploading files...', 'info');
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`Successfully uploaded: ${result.brands.join(', ')}`, 'success');
-                    loadBrands();
-                } else {
-                    showMessage('Upload failed: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showMessage('Upload error: ' + error.message, 'error');
-            }
-        }
         
         async function loadBrands() {
             try {
                 const response = await fetch('/api/brands');
                 const brands = await response.json();
                 
-                const brandSelect = document.getElementById('brandSelect');
-                const brandList = document.getElementById('brandList');
-                const brandItems = document.getElementById('brandItems');
+                const brandButtons = document.getElementById('brandButtons');
                 
-                // Clear existing options except the first one
-                brandSelect.innerHTML = '<option value="">Choose a brand...</option>';
-                
-                // Add brand options
-                brands.forEach(brand => {
-                    const option = document.createElement('option');
-                    option.value = brand.name;
-                    option.textContent = brand.name;
-                    brandSelect.appendChild(option);
-                });
-                
-                // Show brand list
                 if (brands.length > 0) {
-                    brandList.style.display = 'block';
-                    brandItems.innerHTML = brands.map(brand => 
-                        `<div style="margin-bottom: 10px;">
-                            <strong>${brand.name}</strong>
-                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                                ${brand.preview}
-                            </div>
-                        </div>`
+                    brandButtons.innerHTML = brands.map(brand => 
+                        '<button class="brand-btn" onclick="selectBrand(\'' + brand.name + '\')">' + 
+                        brand.name + '</button>'
                     ).join('');
                 } else {
-                    brandList.style.display = 'none';
+                    brandButtons.innerHTML = '<p style="color: #666;">No brand profiles found in brand-profiles folder</p>';
                 }
                 
             } catch (error) {
@@ -324,9 +200,26 @@
             }
         }
         
+        function selectBrand(brandName) {
+            selectedBrandName = brandName;
+            
+            // Update button states
+            const buttons = document.querySelectorAll('.brand-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.textContent === brandName) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            // Show selected brand
+            const selectedBrandDiv = document.getElementById('selectedBrand');
+            selectedBrandDiv.textContent = 'Selected: ' + brandName;
+            selectedBrandDiv.style.display = 'block';
+        }
+        
         async function rewriteText() {
             const inputText = document.getElementById('inputText').value.trim();
-            const selectedBrand = document.getElementById('brandSelect').value;
             const outputText = document.getElementById('outputText');
             const loading = document.getElementById('loading');
             const rewriteBtn = document.getElementById('rewriteBtn');
@@ -336,24 +229,22 @@
                 return;
             }
             
-            if (!selectedBrand) {
-                showMessage('Please select a brand voice.', 'error');
+            if (!selectedBrandName) {
+                showMessage('Please select a brand voice by clicking on a brand button.', 'error');
                 return;
             }
             
-            // Show loading state
+            // Show loading
             loading.style.display = 'block';
             rewriteBtn.disabled = true;
             
             try {
                 const response = await fetch('/api/rewrite', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: inputText,
-                        brandName: selectedBrand
+                        brandName: selectedBrandName
                     })
                 });
                 
@@ -376,12 +267,8 @@
         
         function showMessage(message, type) {
             const container = document.getElementById('messageContainer');
-            const className = type === 'success' ? 'success' : 'error';
-            container.innerHTML = `<div class="${className}">${message}</div>`;
-            
-            setTimeout(() => {
-                container.innerHTML = '';
-            }, 5000);
+            container.innerHTML = '<div class="message ' + type + '">' + message + '</div>';
+            setTimeout(() => { container.innerHTML = ''; }, 5000);
         }
     </script>
 </body>
