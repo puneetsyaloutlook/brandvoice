@@ -62,11 +62,9 @@ app.get('/api/brands', (req, res) => {
   res.json(brands);
 });
 
-// Use OpenRouter API (free tier available)
-async function rewriteWithOpenRouter(text, brandProfile, brandName) {
-  const prompt = `You are a professional copywriter specializing in brand voice adaptation.
-
-Your task: Rewrite the given text to perfectly match the specific brand voice described below.
+// Use Groq API (free and reliable)
+async function rewriteWithGroq(text, brandProfile, brandName) {
+  const prompt = `You are a professional copywriter. Rewrite the following text to match the exact brand voice described below.
 
 BRAND: ${brandName}
 
@@ -76,26 +74,17 @@ ${brandProfile}
 ORIGINAL TEXT:
 "${text}"
 
-INSTRUCTIONS:
-- Study the brand voice guidelines carefully
-- Rewrite the text to match the tone, style, vocabulary, and communication approach described
-- Maintain the core message while transforming it to sound authentic to this brand
-- Follow any specific rules, examples, or patterns mentioned in the guidelines
-- Output ONLY the rewritten text, nothing else
-
-REWRITTEN TEXT:`;
+Rewrite this text to perfectly match the ${brandName} brand voice described above. Output only the rewritten text, no explanations:`;
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || 'sk-or-v1-dummy'}`,
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY || 'gsk-dummy'}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'Brand Voice Rewriter'
       },
       body: JSON.stringify({
-        model: 'microsoft/wizardlm-2-8x22b',
+        model: 'llama3-8b-8192',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 300,
         temperature: 0.7
@@ -103,14 +92,14 @@ REWRITTEN TEXT:`;
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
+      throw new Error(`Groq API error: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.choices[0].message.content.trim();
     
   } catch (error) {
-    console.error('OpenRouter API error:', error);
+    console.error('Groq API error:', error);
     throw error;
   }
 }
@@ -216,32 +205,23 @@ Rewritten text:`;
   }
 }
 
-// Main rewrite function - tries multiple LLM APIs
+// Main rewrite function - only tries Hugging Face, no fallback
 async function rewriteText(text, brandProfile, brandName) {
-  const apis = [
-    { name: 'OpenRouter', fn: rewriteWithOpenRouter },
-    { name: 'Cohere', fn: rewriteWithCohere },
-    { name: 'HuggingFace', fn: rewriteWithHuggingFace }
-  ];
+  console.log(`Trying Hugging Face API for ${brandName}...`);
   
-  for (const api of apis) {
-    try {
-      console.log(`Trying ${api.name} API for ${brandName}...`);
-      const result = await api.fn(text, brandProfile, brandName);
-      
-      if (result && result.length > 10 && result !== text) {
-        console.log(`Success with ${api.name} API`);
-        return result;
-      }
-    } catch (error) {
-      console.log(`${api.name} API failed:`, error.message);
-      continue;
+  try {
+    const result = await rewriteWithHuggingFace(text, brandProfile, brandName);
+    
+    if (result && result.length > 10 && result !== text) {
+      console.log(`Success with Hugging Face API`);
+      return result;
+    } else {
+      throw new Error('No valid response generated');
     }
+  } catch (error) {
+    console.log(`Hugging Face API failed:`, error.message);
+    throw new Error(`Failed to rewrite text: ${error.message}`);
   }
-  
-  // If all LLM APIs fail, return original text with a note
-  console.log('All LLM APIs failed');
-  return `${text}\n\n[Note: Unable to connect to LLM services. Please check your internet connection or try again later.]`;
 }
 
 // Rewrite endpoint
@@ -278,8 +258,7 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Loaded ${Object.keys(brandProfiles).length} brand profiles`);
   console.log('Available brands:', Object.keys(brandProfiles).join(', '));
-  console.log('\nTo get better results, set up a free API key:');
-  console.log('- OpenRouter: https://openrouter.ai (free tier)');
-  console.log('- Cohere: https://cohere.ai (free tier)');
-  console.log('- Hugging Face: https://huggingface.co (completely free)');
+  console.log('\nThis app requires LLM APIs to function.');
+  console.log('Hugging Face Inference API is used (free, no key required).');
+  console.log('If models fail, you will see error messages.');
 });
