@@ -205,6 +205,56 @@ Rewritten text:`;
   }
 }
 
+// Use Together AI API (has a good free tier)
+async function rewriteWithTogether(text, brandProfile, brandName) {
+  const prompt = `Rewrite the following text to match the ${brandName} brand voice.
+
+BRAND VOICE PROFILE FOR ${brandName}:
+${brandProfile}
+
+ORIGINAL TEXT: "${text}"
+
+Rewrite this text to perfectly match the ${brandName} brand voice described above. Output only the rewritten text:`;
+
+  try {
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY || 'dummy-key'}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/Llama-2-7b-chat-hf',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 200,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      const result = data.choices[0].message.content.trim();
+      return result;
+    }
+    
+    throw new Error('No valid response from Together AI');
+    
+  } catch (error) {
+    console.error('Together AI API error:', error);
+    throw error;
+  }
+}
+
 // Main rewrite function - only tries Together AI, no fallback
 async function rewriteText(text, brandProfile, brandName) {
   console.log(`Trying Together AI API for ${brandName}...`);
