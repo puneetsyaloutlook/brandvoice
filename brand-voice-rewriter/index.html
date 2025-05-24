@@ -10,168 +10,211 @@
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: Arial, sans-serif;
-            background: #667eea;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            background: #2d3748;
-            color: white;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .brand-selection {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .brand-buttons {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+            min-height: 100vh;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             justify-content: center;
-            margin-top: 20px;
+            align-items: center;
         }
-        .brand-btn {
-            background: #e2e8f0;
-            color: #2d3748;
-            border: 2px solid #cbd5e0;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
         }
-        .brand-btn:hover {
-            background: #cbd5e0;
-            border-color: #a0aec0;
-        }
-        .brand-btn.selected {
-            background: #667eea;
-            color: white;
-            border-color: #5a67d8;
-        }
-        .selected-brand {
-            margin-top: 15px;
-            padding: 10px;
-            background: #e0e7ff;
-            border-radius: 6px;
-            font-weight: 500;
-            color: #4c51bf;
-        }
-        .input-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
             margin-bottom: 30px;
         }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
         textarea {
             width: 100%;
-            padding: 16px;
-            border: 2px solid #e2e8f0;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
             border-radius: 8px;
-            min-height: 200px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
         }
-        .rewrite-btn {
-            background: #667eea;
+        
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        textarea::placeholder {
+            color: #999;
+        }
+        
+        .brand-selection {
+            margin-bottom: 24px;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin: 0;
+        }
+        
+        .radio-option label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .generate-btn {
+            background-color: #28a745;
             color: white;
             border: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            width: 100%;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 16px;
+            transition: background-color 0.2s ease;
+            margin-bottom: 24px;
         }
-        .rewrite-btn:disabled {
-            opacity: 0.6;
+        
+        .generate-btn:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        
+        .generate-btn:disabled {
+            background-color: #6c757d;
             cursor: not-allowed;
         }
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
+        
+        .result-section {
+            margin-top: 24px;
         }
-        .success { background: #c6f6d5; color: #2f855a; }
-        .error { background: #fed7d7; color: #c53030; }
+        
+        .result-textarea {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            min-height: 150px;
+        }
+        
         .loading {
             display: none;
             text-align: center;
             padding: 20px;
-            color: #667eea;
+            color: #666;
         }
+        
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border-top: 3px solid #28a745;
             border-radius: 50%;
             width: 30px;
             height: 30px;
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
         @media (max-width: 768px) {
-            .input-section {
-                grid-template-columns: 1fr;
+            .container {
+                padding: 24px;
+                margin: 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Brand Voice Rewriter</h1>
-            <p>Transform your text to match any brand's tone of voice</p>
+        <h1>Brand voice rewriter</h1>
+        
+        <div class="form-group">
+            <label for="inputText">Paste or type your text</label>
+            <textarea 
+                id="inputText" 
+                placeholder="Enter the text you want to rewrite in a specific brand voice..."
+            ></textarea>
         </div>
         
         <div class="brand-selection">
-            <h3>Select Brand Voice</h3>
-            <p>Choose a brand voice to apply to your text</p>
-            <div id="brandButtons" class="brand-buttons">
-                <!-- Brand buttons will be loaded here -->
-            </div>
-            <div id="selectedBrand" class="selected-brand" style="display: none;">
-                No brand selected
+            <label>Select a brand</label>
+            <div class="radio-group" id="brandRadios">
+                <!-- Brand radio buttons will be loaded here -->
             </div>
         </div>
-
-        <div class="input-section">
-            <div>
-                <label>Original Text</label>
-                <textarea id="inputText" placeholder="Enter the text you want to rewrite..."></textarea>
-            </div>
-            
-            <div>
-                <label>Rewritten Text</label>
-                <textarea id="outputText" placeholder="Rewritten text will appear here..." readonly></textarea>
-            </div>
-        </div>
-
-        <button class="rewrite-btn" id="rewriteBtn" onclick="rewriteText()">
-            Rewrite Text
-        </button>
-
+        
+        <button class="generate-btn" onclick="generateText()">Generate</button>
+        
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Rewriting text...</p>
+            <p>Generating rewritten text...</p>
         </div>
-
+        
         <div id="messageContainer"></div>
+        
+        <div class="result-section">
+            <label for="outputText">Rewritten text</label>
+            <textarea 
+                id="outputText" 
+                class="result-textarea"
+                placeholder="Rewritten text will appear here..."
+                readonly
+            ></textarea>
+        </div>
     </div>
 
     <script>
@@ -184,15 +227,17 @@
                 const response = await fetch('/api/brands');
                 const brands = await response.json();
                 
-                const brandButtons = document.getElementById('brandButtons');
+                const brandRadios = document.getElementById('brandRadios');
                 
                 if (brands.length > 0) {
-                    brandButtons.innerHTML = brands.map(brand => 
-                        '<button class="brand-btn" onclick="selectBrand(\'' + brand.name + '\')">' + 
-                        brand.name + '</button>'
+                    brandRadios.innerHTML = brands.map((brand, index) => 
+                        `<div class="radio-option">
+                            <input type="radio" id="brand-${index}" name="brand" value="${brand.name}" onchange="selectBrand('${brand.name}')">
+                            <label for="brand-${index}">${brand.name}</label>
+                        </div>`
                     ).join('');
                 } else {
-                    brandButtons.innerHTML = '<p style="color: #666;">No brand profiles found in brand-profiles folder</p>';
+                    brandRadios.innerHTML = '<p style="color: #666;">No brand profiles found in brand-profiles folder</p>';
                 }
                 
             } catch (error) {
@@ -202,27 +247,13 @@
         
         function selectBrand(brandName) {
             selectedBrandName = brandName;
-            
-            // Update button states
-            const buttons = document.querySelectorAll('.brand-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('selected');
-                if (btn.textContent === brandName) {
-                    btn.classList.add('selected');
-                }
-            });
-            
-            // Show selected brand
-            const selectedBrandDiv = document.getElementById('selectedBrand');
-            selectedBrandDiv.textContent = 'Selected: ' + brandName;
-            selectedBrandDiv.style.display = 'block';
         }
         
-        async function rewriteText() {
+        async function generateText() {
             const inputText = document.getElementById('inputText').value.trim();
             const outputText = document.getElementById('outputText');
             const loading = document.getElementById('loading');
-            const rewriteBtn = document.getElementById('rewriteBtn');
+            const generateBtn = document.querySelector('.generate-btn');
             
             if (!inputText) {
                 showMessage('Please enter some text to rewrite.', 'error');
@@ -230,13 +261,14 @@
             }
             
             if (!selectedBrandName) {
-                showMessage('Please select a brand voice by clicking on a brand button.', 'error');
+                showMessage('Please select a brand voice.', 'error');
                 return;
             }
             
             // Show loading
             loading.style.display = 'block';
-            rewriteBtn.disabled = true;
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
             
             try {
                 const response = await fetch('/api/rewrite', {
@@ -261,13 +293,14 @@
                 showMessage('Rewrite error: ' + error.message, 'error');
             } finally {
                 loading.style.display = 'none';
-                rewriteBtn.disabled = false;
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate';
             }
         }
         
         function showMessage(message, type) {
             const container = document.getElementById('messageContainer');
-            container.innerHTML = '<div class="message ' + type + '">' + message + '</div>';
+            container.innerHTML = `<div class="${type}">${message}</div>`;
             setTimeout(() => { container.innerHTML = ''; }, 5000);
         }
     </script>
