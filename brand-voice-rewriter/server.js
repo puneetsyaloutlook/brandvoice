@@ -119,44 +119,65 @@ REWRITTEN TEXT:`;
   }
 }
 
-// Alternative: Use Hugging Face Inference API
+// Alternative: Use Hugging Face Inference API with a better model
 async function rewriteWithHuggingFace(text, brandProfile, brandName) {
-  const prompt = `Rewrite this text in ${brandName} brand voice based on these guidelines:
+  const prompt = `Brand Voice Guidelines for ${brandName}:
+${brandProfile.substring(0, 800)}
 
-Brand Guidelines:
-${brandProfile.substring(0, 500)}
+Rewrite this text to match the ${brandName} brand voice: "${text}"
 
-Original: "${text}"
-
-Rewritten:`;
+Rewritten version:`;
 
   try {
-    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 150,
-          temperature: 0.8,
-          return_full_text: false
+    // Try different models in order of preference
+    const models = [
+      'microsoft/DialoGPT-large',
+      'facebook/blenderbot-400M-distill',
+      'microsoft/DialoGPT-medium'
+    ];
+    
+    for (const model of models) {
+      try {
+        const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 100,
+              temperature: 0.8,
+              return_full_text: false,
+              do_sample: true
+            }
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (!data.error && Array.isArray(data) && data[0]?.generated_text) {
+            let result = data[0].generated_text;
+            
+            // Clean up the response
+            result = result.replace(prompt, '').trim();
+            result = result.replace(/^["']|["']$/g, ''); // Remove quotes
+            result = result.split('\n')[0]; // Take first line only
+            
+            if (result.length > 10) {
+              console.log(`Success with Hugging Face model: ${model}`);
+              return result;
+            }
+          }
         }
-      }),
-    });
-
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    if (Array.isArray(data) && data[0]?.generated_text) {
-      return data[0].generated_text.replace(prompt, '').trim();
+      } catch (modelError) {
+        console.log(`Model ${model} failed:`, modelError.message);
+        continue;
+      }
     }
     
-    throw new Error('No valid response from Hugging Face');
+    throw new Error('All Hugging Face models failed');
     
   } catch (error) {
     console.error('Hugging Face API error:', error);
@@ -211,57 +232,294 @@ Rewrite this text following the brand guidelines exactly. Output only the rewrit
 // Fallback to a local LLM-style transformation
 function localLLMRewrite(text, brandProfile, brandName) {
   // This simulates what an LLM would do by analyzing the brand profile
-  // and applying systematic transformations
+  // and applying systematic transformations based on the actual brand content
   
+  console.log(`Using local processing for ${brandName}`);
+  
+  let result = text;
   const profile = brandProfile.toLowerCase();
+  
+  // Extract specific characteristics from each brand profile
+  const brandCharacteristics = extractBrandSpecificRules(brandProfile, brandName);
+  
+  // Apply brand-specific transformations
+  result = applyBrandSpecificTransformations(result, brandCharacteristics, brandName);
+  
+  // Apply general transformations based on profile content
+  result = applyProfileBasedTransformations(result, profile);
+  
+  return result;
+}
+
+function extractBrandSpecificRules(brandProfile, brandName) {
+  const rules = {
+    tone: 'neutral',
+    vocabulary: 'standard',
+    sentenceStyle: 'standard',
+    specificWords: {},
+    avoid: [],
+    prefer: []
+  };
+  
+  const lines = brandProfile.split('\n');
+  const profile = brandProfile.toLowerCase();
+  
+  // Analyze tone characteristics
+  if (profile.includes('straightforward') || profile.includes('direct')) {
+    rules.tone = 'direct';
+  } else if (profile.includes('friendly') || profile.includes('warm')) {
+    rules.tone = 'friendly';
+  } else if (profile.includes('professional') || profile.includes('expert')) {
+    rules.tone = 'professional';
+  } else if (profile.includes('premium') || profile.includes('luxury')) {
+    rules.tone = 'premium';
+  } else if (profile.includes('casual') || profile.includes('relaxed')) {
+    rules.tone = 'casual';
+  }
+  
+  // Analyze vocabulary preferences
+  if (profile.includes('simple') || profile.includes('plain english')) {
+    rules.vocabulary = 'simple';
+  } else if (profile.includes('technical') || profile.includes('expert')) {
+    rules.vocabulary = 'technical';
+  } else if (profile.includes('jargon') && profile.includes('avoid')) {
+    rules.vocabulary = 'no-jargon';
+  }
+  
+  // Extract sentence style
+  if (profile.includes('short') && profile.includes('sentence')) {
+    rules.sentenceStyle = 'short';
+  } else if (profile.includes('concise') || profile.includes('brief')) {
+    rules.sentenceStyle = 'concise';
+  } else if (profile.includes('detailed') || profile.includes('comprehensive')) {
+    rules.sentenceStyle = 'detailed';
+  }
+  
+  // Extract specific examples from the profile
+  lines.forEach(line => {
+    if (line.includes('"') && line.includes('write like')) {
+      const matches = line.match(/"([^"]+)"/g);
+      if (matches) {
+        matches.forEach(match => {
+          rules.prefer.push(match.replace(/"/g, ''));
+        });
+      }
+    }
+    
+    if (line.includes('"') && line.includes('don\'t write')) {
+      const matches = line.match(/"([^"]+)"/g);
+      if (matches) {
+        matches.forEach(match => {
+          rules.avoid.push(match.replace(/"/g, ''));
+        });
+      }
+    }
+  });
+  
+  return rules;
+}
+
+function applyBrandSpecificTransformations(text, characteristics, brandName) {
   let result = text;
   
-  // Analyze brand profile for key transformation rules
-  const isStraightforward = profile.includes('straightforward') || profile.includes('direct');
-  const isSimple = profile.includes('simple') || profile.includes('plain english');
-  const isActionOriented = profile.includes('action') || profile.includes('immediate');
-  const isCasual = profile.includes('casual') || profile.includes('friendly');
-  const isConfident = profile.includes('confident') || profile.includes('assured');
-  
-  // Apply transformations based on brand characteristics
-  if (isStraightforward) {
-    result = result.replace(/we are excited to announce/gi, '');
-    result = result.replace(/we are pleased to inform you/gi, '');
-    result = result.replace(/it is important to note/gi, '');
-    result = result.replace(/please be advised/gi, '');
+  // Apply tone-specific transformations
+  switch (characteristics.tone) {
+    case 'direct':
+      result = makeTextDirect(result);
+      break;
+    case 'friendly':
+      result = makeTextFriendly(result);
+      break;
+    case 'professional':
+      result = makeTextProfessional(result);
+      break;
+    case 'premium':
+      result = makeTextPremium(result);
+      break;
+    case 'casual':
+      result = makeTextCasual(result);
+      break;
   }
   
-  if (isSimple) {
-    result = result.replace(/comprehensive/gi, 'complete');
-    result = result.replace(/utilize/gi, 'use');
-    result = result.replace(/facilitate/gi, 'help');
-    result = result.replace(/innovative/gi, 'new');
-    result = result.replace(/cutting-edge/gi, 'modern');
-    result = result.replace(/revolutionary/gi, 'new');
+  // Apply vocabulary transformations
+  switch (characteristics.vocabulary) {
+    case 'simple':
+      result = simplifyVocabulary(result);
+      break;
+    case 'technical':
+      result = addTechnicalLanguage(result);
+      break;
+    case 'no-jargon':
+      result = removeJargon(result);
+      break;
   }
   
-  if (isActionOriented) {
+  // Apply sentence style
+  switch (characteristics.sentenceStyle) {
+    case 'short':
+      result = makeSentencesShort(result);
+      break;
+    case 'concise':
+      result = makeConcise(result);
+      break;
+  }
+  
+  return result;
+}
+
+function makeTextDirect(text) {
+  let result = text;
+  result = result.replace(/we are excited to announce/gi, '');
+  result = result.replace(/we are pleased to inform you/gi, '');
+  result = result.replace(/it gives us great pleasure/gi, '');
+  result = result.replace(/we would like to/gi, 'we\'ll');
+  result = result.replace(/in order to/gi, 'to');
+  result = result.replace(/for the purpose of/gi, 'to');
+  result = result.replace(/might be able to/gi, 'can');
+  result = result.replace(/we believe that/gi, '');
+  return result;
+}
+
+function makeTextFriendly(text) {
+  let result = text;
+  result = result.replace(/Dear Sir\/Madam/gi, 'Hi there');
+  result = result.replace(/we are writing to inform/gi, 'we wanted to let you know');
+  result = result.replace(/do not hesitate to/gi, 'feel free to');
+  result = result.replace(/we apologize for any inconvenience/gi, 'sorry for any hassle');
+  result = result.replace(/sincerely/gi, 'thanks');
+  result = result.replace(/kind regards/gi, 'cheers');
+  return result;
+}
+
+function makeTextProfessional(text) {
+  let result = text;
+  result = result.replace(/hi there/gi, 'Dear');
+  result = result.replace(/thanks/gi, 'Thank you');
+  result = result.replace(/can\'t/gi, 'cannot');
+  result = result.replace(/won\'t/gi, 'will not');
+  result = result.replace(/we\'ll/gi, 'we will');
+  return result;
+}
+
+function makeTextPremium(text) {
+  let result = text;
+  result = result.replace(/cheap/gi, 'value-focused');
+  result = result.replace(/basic/gi, 'essential');
+  result = result.replace(/standard/gi, 'classic');
+  result = result.replace(/good/gi, 'excellent');
+  result = result.replace(/nice/gi, 'exceptional');
+  return result;
+}
+
+function makeTextCasual(text) {
+  let result = text;
+  result = result.replace(/cannot/gi, 'can\'t');
+  result = result.replace(/will not/gi, 'won\'t');
+  result = result.replace(/do not/gi, 'don\'t');
+  result = result.replace(/we will/gi, 'we\'ll');
+  result = result.replace(/you will/gi, 'you\'ll');
+  return result;
+}
+
+function simplifyVocabulary(text) {
+  let result = text;
+  const simplifications = {
+    'comprehensive': 'complete',
+    'utilize': 'use',
+    'facilitate': 'help',
+    'innovative': 'new',
+    'cutting-edge': 'modern',
+    'revolutionary': 'new',
+    'exceptional': 'great',
+    'outstanding': 'great',
+    'leverage': 'use',
+    'implement': 'use',
+    'optimize': 'improve',
+    'enhance': 'improve',
+    'accommodate': 'help',
+    'demonstrate': 'show',
+    'collaborate': 'work with',
+    'communicate': 'talk'
+  };
+  
+  Object.keys(simplifications).forEach(complex => {
+    const regex = new RegExp(`\\b${complex}\\b`, 'gi');
+    result = result.replace(regex, simplifications[complex]);
+  });
+  
+  return result;
+}
+
+function removeJargon(text) {
+  let result = text;
+  const jargonRemovals = {
+    'solutions': 'options',
+    'paradigm': 'approach',
+    'synergy': 'teamwork',
+    'leverage': 'use',
+    'robust': 'strong',
+    'scalable': 'flexible',
+    'seamless': 'smooth',
+    'cutting-edge': 'modern',
+    'state-of-the-art': 'modern',
+    'best-in-class': 'top',
+    'world-class': 'quality',
+    'industry-leading': 'leading'
+  };
+  
+  Object.keys(jargonRemovals).forEach(jargon => {
+    const regex = new RegExp(`\\b${jargon}\\b`, 'gi');
+    result = result.replace(regex, jargonRemovals[jargon]);
+  });
+  
+  return result;
+}
+
+function makeSentencesShort(text) {
+  // Split long sentences at conjunctions
+  let result = text;
+  result = result.replace(/,\s*and\s+/g, '. ');
+  result = result.replace(/,\s*but\s+/g, '. However, ');
+  result = result.replace(/;\s*/g, '. ');
+  
+  // Capitalize first letters after periods
+  result = result.replace(/\.\s+([a-z])/g, (match, letter) => '. ' + letter.toUpperCase());
+  
+  return result;
+}
+
+function makeConcise(text) {
+  let result = text;
+  result = result.replace(/in order to/gi, 'to');
+  result = result.replace(/for the purpose of/gi, 'to');
+  result = result.replace(/due to the fact that/gi, 'because');
+  result = result.replace(/in spite of the fact that/gi, 'although');
+  result = result.replace(/at this point in time/gi, 'now');
+  result = result.replace(/in the near future/gi, 'soon');
+  result = result.replace(/a large number of/gi, 'many');
+  result = result.replace(/a great deal of/gi, 'much');
+  
+  return result;
+}
+
+function applyProfileBasedTransformations(text, profile) {
+  let result = text;
+  
+  // Apply transformations based on what's actually in the brand profile
+  if (profile.includes('no fuss')) {
+    result = result.replace(/comprehensive/gi, 'simple');
+    result = result.replace(/complex/gi, 'simple');
+  }
+  
+  if (profile.includes('action-oriented')) {
     result = result.replace(/will be able to/gi, 'can');
-    result = result.replace(/in order to/gi, 'to');
-    result = result.replace(/for the purpose of/gi, 'to');
+    result = result.replace(/would like to/gi, 'want to');
   }
   
-  if (isCasual) {
-    result = result.replace(/Dear Sir\/Madam/gi, 'Hi');
-    result = result.replace(/we would like to/gi, 'we\'d like to');
-    result = result.replace(/do not/gi, 'don\'t');
-    result = result.replace(/cannot/gi, 'can\'t');
+  if (profile.includes('immediate')) {
+    result = result.replace(/as soon as possible/gi, 'now');
+    result = result.replace(/at your earliest convenience/gi, 'quickly');
   }
-  
-  if (isConfident) {
-    result = result.replace(/might be able to/gi, 'can');
-    result = result.replace(/we believe/gi, 'we know');
-    result = result.replace(/perhaps/gi, '');
-    result = result.replace(/possibly/gi, '');
-  }
-  
-  // Clean up and format
-  result = result.replace(/\s+/g, ' ').trim();
   
   return result;
 }
